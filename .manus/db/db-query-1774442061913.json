@@ -1,0 +1,15 @@
+{
+  "query": "SELECT LENGTH(htmlContent) as html_size, id, name FROM campaigns WHERE htmlContent IS NOT NULL ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user V4TVjQBKALgEDbX.27b82c9ee16c --database USaXLLhnq7a44vBmyf6RDG --execute SELECT LENGTH(htmlContent) as html_size, id, name FROM campaigns WHERE htmlContent IS NOT NULL ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "html_size": "30",
+      "id": "4",
+      "name": "Combustivel"
+    }
+  ],
+  "messages": [],
+  "stdout": "html_size\tid\tname\n30\t4\tCombustivel\n",
+  "stderr": "",
+  "execution_time_ms": 64
+}

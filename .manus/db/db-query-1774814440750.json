@@ -1,0 +1,46 @@
+{
+  "query": "SELECT id, openId, email, name, role, loginMethod, passwordHash IS NOT NULL as hasPassword FROM users WHERE loginMethod = 'local' OR email LIKE '%real94%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user V4TVjQBKALgEDbX.27b82c9ee16c --database USaXLLhnq7a44vBmyf6RDG --execute SELECT id, openId, email, name, role, loginMethod, passwordHash IS NOT NULL as hasPassword FROM users WHERE loginMethod = 'local' OR email LIKE '%real94%' LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "HkMGbzHcPY2u4zckHtx4gW",
+      "email": "pedro.gabriel@real94.com.br",
+      "name": "PEDRO GABRIEL BEVILAQUA SILVA",
+      "role": "admin",
+      "loginMethod": "google",
+      "hasPassword": "0"
+    },
+    {
+      "id": "30035",
+      "openId": "HvrF4AWbX9EEze9NUNSg5s",
+      "email": "real94.tech@real94.com.br",
+      "name": "REAL 94 TECH",
+      "role": "user",
+      "loginMethod": "google",
+      "hasPassword": "0"
+    },
+    {
+      "id": "180029",
+      "openId": "fz3duoMRtgATAgLZMAmCxh",
+      "email": "cristine.medeiros@real94.com.br",
+      "name": "CRISTINE GUIMARAES DE MEDEIROS",
+      "role": "user",
+      "loginMethod": "google",
+      "hasPassword": "0"
+    },
+    {
+      "id": "270001",
+      "openId": "U8xHSt8yJhxZsE4b9z54Mk",
+      "email": "rafael.fernandes@real94.com.br",
+      "name": "RAFAEL FERNANDES",
+      "role": "user",
+      "loginMethod": "google",
+      "hasPassword": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\temail\tname\trole\tloginMethod\thasPassword\n1\tHkMGbzHcPY2u4zckHtx4gW\tpedro.gabriel@real94.com.br\tPEDRO GABRIEL BEVILAQUA SILVA\tadmin\tgoogle\t0\n30035\tHvrF4AWbX9EEze9NUNSg5s\treal94.tech@real94.com.br\tREAL 94 TECH\tuser\tgoogle\t0\n180029\tfz3duoMRtgATAgLZMAmCxh\tcristine.medeiros@real94.com.br\tCRISTINE GUIMARAES DE MEDEIROS\tuser\tgoogle\t0\n270001\tU8xHSt8yJhxZsE4b9z54Mk\trafael.fernandes@real94.com.br\tRAFAEL FERNANDES\tuser\tgoogle\t0\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

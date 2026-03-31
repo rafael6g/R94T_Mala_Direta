@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1774270011625,
+      "tag": "0000_magenta_puppet_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1774270383010,
+      "tag": "0001_mushy_layla_miller",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1774442003003,
+      "tag": "0002_supreme_shadowcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1774814264522,
+      "tag": "0003_fresh_mikhail_rasputin",
+      "breakpoints": true
+    }
+  ]
+}
