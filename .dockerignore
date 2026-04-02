@@ -1,0 +1,7 @@
+node_modules
+dist
+server/_core/public
+.manus-logs
+.env
+.env.*
+*.log
