@@ -5,24 +5,34 @@ import type {
 } from "../drizzle/schema";
 
 // ============ CONFIGURAÇÃO DO XANO ============
-const XANO_BASE_URL = process.env.XANO_API_BASE_URL || 'https://xd23-clr8-wwle.b2.xano.io/api:PzghHKZc';
+const XANO_BASE_URL = process.env.XANO_API_BASE_URL || 'https://xd23-clr8-wwle.b2.xano.io/api:PzghHKzc';
 
+// MySQL desativado para evitar erros de SSL
 export async function getDb() { return null; }
 
-// ============ TRADUTOR UNIVERSAL ============
+// ============ TRADUTOR UNIVERSAL (XANO <-> APP) ============
 function mapToApp(record: any): any {
   if (!record || typeof record !== 'object') return record;
   const mapped = { ...record };
 
+  // Datas e IDs
   if (mapped.created_at !== undefined) mapped.createdAt = new Date(mapped.created_at);
   if (mapped.user_id !== undefined) mapped.userId = Number(mapped.user_id);
   if (mapped.list_id !== undefined) mapped.listId = Number(mapped.list_id);
   if (mapped.contact_id !== undefined) mapped.contactId = Number(mapped.contact_id);
+  
+  // Campanhas
   if (mapped.campaigns_id !== undefined) mapped.campaignId = Number(mapped.campaigns_id);
   else if (mapped.campaign_id !== undefined) mapped.campaignId = Number(mapped.campaign_id);
   
+  // Flags e Contadores
   if (mapped.contactCount !== undefined) mapped.contactCount = Number(mapped.contactCount);
   if (mapped.subjectConfirmed !== undefined) mapped.subjectConfirmed = Boolean(mapped.subjectConfirmed);
+
+  // 🎯 CORREÇÃO DO LOGIN: Mapeia o campo de senha do Xano para o App
+  if (record.passwordHash !== undefined) mapped.passwordHash = record.passwordHash;
+  else if (record.password_hash !== undefined) mapped.passwordHash = record.password_hash;
+  else if (record.password !== undefined) mapped.passwordHash = record.password;
 
   return mapped;
 }
@@ -36,6 +46,7 @@ function mapToXano(data: any): any {
   if (mapped.campaignId !== undefined) { mapped.campaigns_id = mapped.campaignId; delete mapped.campaignId; }
   if (mapped.contactId !== undefined) { mapped.contact_id = mapped.contactId; delete mapped.contactId; }
 
+  // Remove campos que o Xano gera sozinho ou que conflitam
   if (mapped.createdAt !== undefined) delete mapped.createdAt;
   if (mapped.updatedAt !== undefined) delete mapped.updatedAt;
   if (mapped.created_at !== undefined) delete mapped.created_at;
@@ -65,13 +76,38 @@ async function xanoFetch(endpoint: string, method = 'GET', body?: any): Promise<
   }
 }
 
-// ============ USERS ============
-export async function upsertUser(user: InsertUser): Promise<void> { return; }
-export async function getUserByOpenId(openId: string) {
-  return { id: 1, openId, email: "pedro.gabriel@real94.com.br", name: "Pedro Gabriel", role: "admin", createdAt: new Date() };
+// ============ USERS (AUTENTICAÇÃO DINÂMICA) ============
+export async function upsertUser(user: InsertUser): Promise<void> {
+  if (user.openId) {
+    const existing = await getUserByOpenId(user.openId);
+    if (existing?.id) {
+      const payload = { ...mapToXano(user), mkt_users_id: existing.id, lastSignedIn: new Date() };
+      await xanoFetch(`/mkt_users/${existing.id}`, 'PATCH', payload);
+      return;
+    }
+  }
+  await xanoFetch('/mkt_users', 'POST', mapToXano({ ...user, lastSignedIn: new Date() }));
 }
+
+export async function getUserByOpenId(openId: string) {
+  const data = await xanoFetch(`/mkt_users?open_id=${encodeURIComponent(openId)}`);
+  const record = Array.isArray(data) ? data[0] : (data && !data._error ? data : null);
+  return record ? mapToApp(record) : undefined;
+}
+
 export async function getUserByEmail(email: string) {
-  if (email.toLowerCase() === "pedro.gabriel@real94.com.br") return { id: 1, openId: "local_pedro", email, name: "Pedro Gabriel", role: "admin" };
+  const data = await xanoFetch(`/mkt_users?email=${encodeURIComponent(email.toLowerCase())}`);
+  
+  let record = null;
+  if (Array.isArray(data)) {
+    record = data.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+  } else if (data && !data._error) {
+    record = data;
+  }
+  
+  if (record && record.email) {
+    return mapToApp(record);
+  }
   return undefined;
 }
 
@@ -81,33 +117,28 @@ export async function createContactList(data: InsertContactList) {
   return { id: result.id };
 }
 
-// 🔥 CONTAGEM DINÂMICA: Conta os contatos reais na hora que a tela carrega!
 export async function getContactLists(userId: number) {
   const lists = await xanoFetch(`/mkt_contact_lists?user_id=${userId}`);
   if (!Array.isArray(lists)) return [];
 
-  // Busca todos os membros de uma vez e distribui a contagem
+  // Contagem dinâmica para evitar "0 contatos"
   const allMembers = await xanoFetch(`/mkt_contact_list_members`);
   if (Array.isArray(allMembers)) {
     lists.forEach(list => {
-      // Conta na hora quantos contatos estão vinculados a esta lista
       list.contactCount = allMembers.filter((m: any) => m.list_id === list.id).length;
     });
   }
-
   return lists.map(mapToApp);
 }
 
 export async function getContactListById(id: number, userId: number) {
   const list = await xanoFetch(`/mkt_contact_lists/${id}`);
   if (!list || list._error) return undefined;
-
-  // Conta os membros na hora para esta lista específica
+  
   const members = await xanoFetch(`/mkt_contact_list_members?list_id=${id}`);
   if (Array.isArray(members)) {
     list.contactCount = members.filter((m: any) => m.list_id == id).length;
   }
-
   return mapToApp(list);
 }
 
@@ -193,25 +224,17 @@ export async function deleteContact(id: number, userId: number) {
   await xanoFetch(`/mkt_contacts/${id}`, 'DELETE');
 }
 
-// 🔥 ANTI-DUPLICIDADE: Verifica antes de adicionar para o Xano não bloquear
 export async function addContactsToList(contactIds: number[], listId: number) {
   if (contactIds.length === 0) return;
-  
-  // 1. Busca quem já está na lista
   const existingMembers = await xanoFetch(`/mkt_contact_list_members?list_id=${listId}`);
   let idsToAdd = contactIds;
-  
   if (Array.isArray(existingMembers)) {
     const alreadyInList = new Set(existingMembers.map((m: any) => m.contact_id));
-    // 2. Filtra e só adiciona quem ainda NÃO está na lista
     idsToAdd = contactIds.filter(id => !alreadyInList.has(id));
   }
-
-  // 3. Adiciona os novos
   if (idsToAdd.length > 0) {
     await Promise.all(idsToAdd.map(cid => xanoFetch('/mkt_contact_list_members', 'POST', { contact_id: cid, list_id: listId })));
   }
-  
   await recalcListCount(listId);
 }
 
@@ -263,7 +286,6 @@ export async function updateCampaign(id: number, userId: number, data: Partial<I
   if (existing && !existing._error) {
     const payload = { ...existing, ...mapToXano(data), mkt_campaigns_id: id, user_id: userId };
     delete payload.created_at;
-    
     const res = await xanoFetch(`/mkt_campaigns/${id}`, 'PATCH', payload);
     if (res._error) throw new Error("Erro ao salvar no Xano");
   }
