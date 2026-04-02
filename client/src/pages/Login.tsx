@@ -35,17 +35,17 @@ export default function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
-        credentials: "include",
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!res.ok || !data.authToken) {
         setError(data.error || "Erro ao fazer login.");
         return;
       }
 
-      // Reload page to re-initialise tRPC context with the new session cookie
+      localStorage.setItem('xano_token', data.authToken);
+
       const params = new URLSearchParams(window.location.search);
       const returnPath = params.get("return") || "/";
       window.location.href = returnPath;

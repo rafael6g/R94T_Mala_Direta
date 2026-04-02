@@ -1,7 +1,6 @@
-import { eq, and, desc, sql, like, inArray } from "drizzle-orm";
 import type {
-  InsertUser, ContactList, InsertContactList, Contact, InsertContact,
-  Campaign, InsertCampaign, InsertAuditLog, InsertSmtpSettings
+  InsertUser, InsertContactList, InsertContact,
+  InsertCampaign, InsertAuditLog, InsertSmtpSettings
 } from "../drizzle/schema";
 
 // ============ CONFIGURAÇÃO DO XANO ============
@@ -49,6 +48,7 @@ function mapToXano(data: any): any {
   if (mapped.openId !== undefined) { mapped.open_id = mapped.openId; delete mapped.openId; }
   if (mapped.passwordHash !== undefined) { mapped.password = mapped.passwordHash; delete mapped.passwordHash; }
   if (mapped.loginMethod !== undefined) { mapped.login_method = mapped.loginMethod; delete mapped.loginMethod; }
+  if (mapped.lastSignedIn !== undefined) { mapped.lastSignedln = mapped.lastSignedIn; delete mapped.lastSignedIn; }
 
   // Campos de relação
   if (mapped.userId !== undefined) { mapped.user_id = mapped.userId; delete mapped.userId; }
@@ -91,7 +91,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (user.openId) {
     const existing = await getUserByOpenId(user.openId);
     if (existing?.id) {
-      const payload = { ...mapToXano(user), mkt_users_id: existing.id, lastSignedIn: new Date() };
+      const raw = await xanoFetch(`/mkt_users/${existing.id}`);
+      const payload = { ...(raw._error ? {} : raw), ...mapToXano(user), mkt_users_id: existing.id, lastSignedIn: new Date() };
+      delete payload.created_at;
       await xanoFetch(`/mkt_users/${existing.id}`, 'PATCH', payload);
       return;
     }

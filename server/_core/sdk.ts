@@ -257,47 +257,40 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<User> {
-    // Regular authentication flow
-    const cookies = this.parseCookies(req.headers.cookie);
-    const sessionCookie = cookies.get(COOKIE_NAME);
-    const session = await this.verifySession(sessionCookie);
+    // Extract Bearer token from Authorization header
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-    if (!session) {
-      throw ForbiddenError("Invalid session cookie");
+    if (!token) {
+      throw ForbiddenError("No auth token");
     }
 
-    const sessionUserId = session.openId;
-    const signedInAt = new Date();
-    let user = await db.getUserByOpenId(sessionUserId);
+    try {
+      const XANO_BASE_URL = process.env.XANO_API_BASE_URL || 'https://xd23-clr8-wwle.b2.xano.io/api:PzghHKzc';
+      const res = await fetch(`${XANO_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    // If user not in DB, sync from OAuth server automatically
-    if (!user) {
-      try {
-        const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
-        await db.upsertUser({
-          openId: userInfo.openId,
-          name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-          lastSignedIn: signedInAt,
-        });
-        user = await db.getUserByOpenId(userInfo.openId);
-      } catch (error) {
-        console.error("[Auth] Failed to sync user from OAuth:", error);
-        throw ForbiddenError("Failed to sync user info");
+      if (!res.ok) {
+        throw ForbiddenError("Invalid or expired token");
       }
+
+      const xanoUser = await res.json();
+
+      return {
+        id: xanoUser.id,
+        openId: String(xanoUser.id),
+        email: xanoUser.email ?? null,
+        name: xanoUser.name ?? null,
+        role: xanoUser.role ?? 'user',
+        loginMethod: 'xano',
+        lastSignedIn: xanoUser.lastSignedln ? new Date(xanoUser.lastSignedln) : new Date(),
+        createdAt: xanoUser.created_at ? new Date(xanoUser.created_at) : new Date(),
+        passwordHash: null,
+      } as unknown as User;
+    } catch (error) {
+      throw ForbiddenError("Authentication failed");
     }
-
-    if (!user) {
-      throw ForbiddenError("User not found");
-    }
-
-    await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
-    });
-
-    return user;
   }
 }
 
