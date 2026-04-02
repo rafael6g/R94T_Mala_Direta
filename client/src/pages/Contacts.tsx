@@ -355,8 +355,8 @@ function QuickImportDialog({ open, onOpenChange, lists, onSubmit, isLoading }: {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleReset(); onOpenChange(v); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl flex flex-col max-h-[90vh]">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" /> Importação Rápida de Contatos
           </DialogTitle>
@@ -364,7 +364,7 @@ function QuickImportDialog({ open, onOpenChange, lists, onSubmit, isLoading }: {
             Arraste um arquivo Excel/CSV para dentro ou cole os dados diretamente. O sistema detecta automaticamente as colunas.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
           {/* Hidden file input */}
           <input
             ref={fileInputRef}
@@ -546,7 +546,7 @@ function QuickImportDialog({ open, onOpenChange, lists, onSubmit, isLoading }: {
             </Select>
           </div>
         </div>
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 shrink-0">
           <Button variant="outline" onClick={() => { handleReset(); onOpenChange(false); }}>Cancelar</Button>
           <Button
             onClick={() => onSubmit({ rawText, listId: listId !== "none" ? parseInt(listId) : undefined })}
