@@ -6,18 +6,26 @@ import path from "path";
 
 export async function setupVite(app: Express, server: Server) {
   const { createServer: createViteServer } = await import("vite");
-  const viteConfig = (await import("../../vite.config")).default;
-
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true as const,
-  };
+  const react = (await import("@vitejs/plugin-react")).default;
+  const tailwindcss = (await import("@tailwindcss/vite")).default;
 
   const vite = await createViteServer({
-    ...viteConfig,
     configFile: false,
-    server: serverOptions,
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        "@": path.resolve(process.cwd(), "client", "src"),
+        "@shared": path.resolve(process.cwd(), "shared"),
+        "@assets": path.resolve(process.cwd(), "attached_assets"),
+      },
+    },
+    root: path.resolve(process.cwd(), "client"),
+    publicDir: path.resolve(process.cwd(), "client", "public"),
+    server: {
+      middlewareMode: true,
+      hmr: { server },
+      allowedHosts: true as const,
+    },
     appType: "custom",
   });
 

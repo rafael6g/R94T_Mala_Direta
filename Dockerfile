@@ -57,8 +57,9 @@ COPY patches/ ./patches/
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy built artifacts from builder
+# serveStatic em produção resolve: import.meta.dirname (/app/dist) + "public" → /app/dist/public
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server/_core/public ./server/_core/public
+COPY --from=builder /app/server/_core/public ./dist/public
 
 # ─── Runtime env vars (server-side apenas) ──────────────────────────
 ENV NODE_ENV=production
