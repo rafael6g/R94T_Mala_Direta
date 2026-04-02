@@ -20,6 +20,10 @@ function mapToApp(record: any): any {
   if (mapped.user_id !== undefined) mapped.userId = Number(mapped.user_id);
   if (mapped.list_id !== undefined) mapped.listId = Number(mapped.list_id);
   if (mapped.contact_id !== undefined) mapped.contactId = Number(mapped.contact_id);
+
+  // Campos de usuário
+  if (mapped.open_id !== undefined) mapped.openId = mapped.open_id;
+  if (mapped.login_method !== undefined) mapped.loginMethod = mapped.login_method;
   
   // Campanhas
   if (mapped.campaigns_id !== undefined) mapped.campaignId = Number(mapped.campaigns_id);
@@ -41,6 +45,12 @@ function mapToXano(data: any): any {
   if (!data || typeof data !== 'object') return data;
   const mapped = { ...data };
 
+  // Campos de usuário
+  if (mapped.openId !== undefined) { mapped.open_id = mapped.openId; delete mapped.openId; }
+  if (mapped.passwordHash !== undefined) { mapped.password = mapped.passwordHash; delete mapped.passwordHash; }
+  if (mapped.loginMethod !== undefined) { mapped.login_method = mapped.loginMethod; delete mapped.loginMethod; }
+
+  // Campos de relação
   if (mapped.userId !== undefined) { mapped.user_id = mapped.userId; delete mapped.userId; }
   if (mapped.listId !== undefined) { mapped.list_id = mapped.listId; delete mapped.listId; }
   if (mapped.campaignId !== undefined) { mapped.campaigns_id = mapped.campaignId; delete mapped.campaignId; }
